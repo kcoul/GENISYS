@@ -12,10 +12,10 @@
   <EXPORTFORMATS>
     <XCODE_MAC targetFolder="Builds/MacOSX" externalLibraries="sox&#10;deepspeech">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug" targetName="DeepSpeechRenderer" headerPath="/usr/local/include&#10;/Users/catdev/repos/GENISYS/native_client"
-                       libraryPath="/usr/local/lib&#10;/Users/catdev/repos/GENISYS/DeepSpeechRenderer/lib/native_client.amd64.cpu.osx"/>
-        <CONFIGURATION isDebug="0" name="Release" targetName="DeepSpeechRenderer" libraryPath="/usr/local/lib&#10;/Users/catdev/repos/GENISYS/DeepSpeechRenderer/lib/native_client.amd64.cpu.osx"
-                       headerPath="/usr/local/include&#10;/Users/catdev/repos/GENISYS/native_client"/>
+        <CONFIGURATION isDebug="1" name="Debug" targetName="DeepSpeechRenderer" headerPath="/usr/local/include&#10;${PROJECT_DIR}/../../../native_client"
+                       libraryPath="/usr/local/lib&#10;${PROJECT_DIR}/../../../DeepSpeechRenderer/lib/native_client.amd64.cpu.osx"/>
+        <CONFIGURATION isDebug="0" name="Release" targetName="DeepSpeechRenderer" libraryPath="/usr/local/lib&#10;${PROJECT_DIR}/../../../DeepSpeechRenderer/lib/native_client.amd64.cpu.osx"
+                       headerPath="/usr/local/include&#10;${PROJECT_DIR}/../../../native_client"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_core" path="../../JUCE/modules"/>
