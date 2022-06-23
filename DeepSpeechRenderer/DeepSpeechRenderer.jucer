@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="BJJ7WW" name="DeepSpeechRenderer" projectType="consoleapp"
-              useAppConfig="0" addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
+              useAppConfig="0" addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1"
+              bundleIdentifier="com.genisys.DeepSpeechRenderer">
   <MAINGROUP id="ZtfbaH" name="DeepSpeechRenderer">
     <GROUP id="{AAD14932-E45D-8988-4938-AC9C7E30D1B9}" name="Source">
       <FILE id="zuDgqu" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>

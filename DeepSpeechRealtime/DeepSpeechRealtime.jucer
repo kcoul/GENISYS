@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="G459KL" name="DeepSpeechRealtime" projectType="guiapp" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" bundleIdentifier="com.genisys.DeepSpeechRealtime">
   <MAINGROUP id="V5HzVf" name="DeepSpeechRealtime">
     <GROUP id="{CE9504D1-1620-013A-75B8-6F7D659015BC}" name="Source">
       <FILE id="S73J3l" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
