@@ -178,11 +178,11 @@ LocalDsSTT(ModelState* aCtx, const short* aBuffer, size_t aBufferSize,
 
   // sphinx-doc: c_ref_inference_start
   if (extended_output) {
-    Metadata *result = DS_SpeechToTextWithMetadata(aCtx, aBuffer, aBufferSize, 1);
+    Metadata *result = DS_SpeechToTextWithMetadata(aCtx, aBuffer, (unsigned int)aBufferSize, 1);
     res.string = CandidateTranscriptToString(&result->transcripts[0]);
     DS_FreeMetadata(result);
   } else if (json_output) {
-    Metadata *result = DS_SpeechToTextWithMetadata(aCtx, aBuffer, aBufferSize, json_candidate_transcripts);
+    Metadata *result = DS_SpeechToTextWithMetadata(aCtx, aBuffer, (unsigned int)aBufferSize, json_candidate_transcripts);
     res.string = MetadataToJSON(result);
     DS_FreeMetadata(result);
   } else if (stream_size > 0) {
@@ -197,7 +197,7 @@ LocalDsSTT(ModelState* aCtx, const short* aBuffer, size_t aBufferSize,
     const char *prev = nullptr;
     while (off < aBufferSize) {
       size_t cur = aBufferSize - off > stream_size ? stream_size : aBufferSize - off;
-      DS_FeedAudioContent(ctx, aBuffer + off, cur);
+      DS_FeedAudioContent(ctx, aBuffer + off, (unsigned int)cur);
       off += cur;
       prev = last;
       const char* partial = DS_IntermediateDecode(ctx);
@@ -227,7 +227,7 @@ LocalDsSTT(ModelState* aCtx, const short* aBuffer, size_t aBufferSize,
     const char *prev = nullptr;
     while (off < aBufferSize) {
       size_t cur = aBufferSize - off > extended_stream_size ? extended_stream_size : aBufferSize - off;
-      DS_FeedAudioContent(ctx, aBuffer + off, cur);
+      DS_FeedAudioContent(ctx, aBuffer + off, (unsigned int)cur);
       off += cur;
       prev = last;
       const Metadata* result = DS_IntermediateDecodeWithMetadata(ctx, 1);
@@ -248,7 +248,7 @@ LocalDsSTT(ModelState* aCtx, const short* aBuffer, size_t aBufferSize,
     DS_FreeMetadata((Metadata *)result);
     free((char *) last);
   } else {
-    res.string = DS_SpeechToText(aCtx, aBuffer, aBufferSize);
+    res.string = DS_SpeechToText(aCtx, aBuffer, (unsigned int)aBufferSize);
   }
   // sphinx-doc: c_ref_inference_stop
 
@@ -299,7 +299,10 @@ GetAudioBuffer(const char* path, int desired_sample_rate)
   // It would be preferable to use sox_open_memstream_write here, but OS-X
   // doesn't support POSIX 2008, which it requires. See Issue #461.
   // Instead, we write to a temporary file.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
   char* output_name = tmpnam(NULL);
+#pragma clang diagnostic pop
   assert(output_name);
   sox_format_t* output = sox_open_write(output_name, &target_signal,
                                         &target_encoding, "raw", NULL, NULL);
