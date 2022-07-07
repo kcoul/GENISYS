@@ -20,13 +20,25 @@ MainComponent::MainComponent()
         setAudioChannels (2, 2);
     }
     
-    int status = DS_CreateModel(model, &ctx);
+    char* modelPath = (char*)calloc(strlen(homeDir)+strlen(model)+1, sizeof(char));
+    strcpy(modelPath,homeDir); // copy homeDir into the modelPath.
+    strcat(modelPath,model); // append model to the modelPath.
+    
+    int status = DS_CreateModel(modelPath, &ctx);
     if (status != 0) { /*TODO: Post failure to GUI console */ }
     else { /*TODO: Post success to GUI console */ }
     
-    status = DS_EnableExternalScorer(ctx, scorer);
+    free(modelPath);
+    
+    char* scorerPath = (char*)calloc(strlen(homeDir)+strlen(scorer)+1, sizeof(char));
+    strcpy(scorerPath,homeDir); // copy homeDir into the modelPath.
+    strcat(scorerPath,scorer); // append scorer to the modelPath.
+    
+    status = DS_EnableExternalScorer(ctx, scorerPath);
     if (status != 0) { /*TODO: Post failure to GUI console */ }
     else { /*TODO: Post success to GUI console */ }
+    
+    free(scorerPath);
     
     if (hot_words)
     {

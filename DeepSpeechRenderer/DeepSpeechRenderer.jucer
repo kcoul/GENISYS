@@ -10,11 +10,12 @@
   </MAINGROUP>
   <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1"/>
   <EXPORTFORMATS>
-    <XCODE_MAC targetFolder="Builds/MacOSX" externalLibraries="sox&#10;deepspeech">
+    <XCODE_MAC targetFolder="Builds/MacOSX" externalLibraries="sox&#10;deepspeech"
+               postbuildCommand="cp ~/repos/GENISYS/lib/native_client.amd64.cpu.osx/libdeepspeech.so ~/repos/GENISYS/DeepSpeechRenderer/Builds/MacOSX/build/Debug">
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug" targetName="DeepSpeechRenderer" headerPath="/usr/local/include&#10;${PROJECT_DIR}/../../../native_client"
-                       libraryPath="/usr/local/lib&#10;${PROJECT_DIR}/../../../DeepSpeechRenderer/lib/native_client.amd64.cpu.osx"/>
-        <CONFIGURATION isDebug="0" name="Release" targetName="DeepSpeechRenderer" libraryPath="/usr/local/lib&#10;${PROJECT_DIR}/../../../DeepSpeechRenderer/lib/native_client.amd64.cpu.osx"
+                       libraryPath="/usr/local/lib&#10;${PROJECT_DIR}/../../../lib/native_client.amd64.cpu.osx"/>
+        <CONFIGURATION isDebug="0" name="Release" targetName="DeepSpeechRenderer" libraryPath="/usr/local/lib&#10;${PROJECT_DIR}/../../../lib/native_client.amd64.cpu.osx"
                        headerPath="/usr/local/include&#10;${PROJECT_DIR}/../../../native_client"/>
       </CONFIGURATIONS>
       <MODULEPATHS>

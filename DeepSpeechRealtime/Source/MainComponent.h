@@ -81,8 +81,9 @@ private:
     
     //args.h variables
     //TODO: Convert to GUI tools to load these hard dependencies, or embed to binary if they never change
-    const char* model = "/Users/catdev/repos/GENISYS/DeepSpeechRealtime/Builds/MacOSX/build/Debug/deepspeech-0.9.3-models.pbmm";
-    const char* scorer = "/Users/catdev/repos/GENISYS/DeepSpeechRealtime/Builds/MacOSX/build/Debug/deepspeech-0.9.3-models.scorer";
+    const char* homeDir = getenv("HOME");
+    const char* model = "/repos/GENISYS/LFS/deepspeech-0.9.3-models.pbmm";
+    const char* scorer = "/repos/GENISYS/LFS/deepspeech-0.9.3-models.scorer";
     //TODO: 1 Replace with GUI-based Start/Stop Recording functionality
     //TODO: 2 Replace with circular buffer-based keyword detector and ViAD logic (Voice inActivity Detector)
     char* audio = NULL;
