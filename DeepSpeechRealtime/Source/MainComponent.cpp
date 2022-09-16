@@ -56,10 +56,19 @@ MainComponent::MainComponent()
             else { /*TODO: Post success to GUI console */ }
         }        
     }
+    
+    addAndMakeVisible(selector);
+    
+    meter.setLookAndFeel (&lnf);
+    meter.setMeterSource (&meterSource);
+    addAndMakeVisible (meter);
 }
 
 MainComponent::~MainComponent()
 {
+
+    DS_FreeModel(ctx);
+    
     // This shuts down the audio device and clears the audio source.
     shutdownAudio();
 }
@@ -67,22 +76,86 @@ MainComponent::~MainComponent()
 //==============================================================================
 void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRate)
 {
-    // This function will be called when the audio device is started, or when
-    // its settings (i.e. sample rate, block size, etc) are changed.
+    if (sampleRate < targetSampleRate)
+    {
+        fprintf(stderr, "Warning: original sample rate (%d) is lower than %dkHz. "
+                "Up-sampling might produce erratic speech recognition.\n", targetSampleRate, (int)sampleRate);
+    }
+    
+    const int resamplerBlockSize = samplesPerBlockExpected;
+    const int resamplerMaxSamples = maxInputSampleRate * 2;
 
-    // You can use this function to initialise any resources you might need,
-    // but be careful - it will be called on the audio thread, not the GUI thread.
-
-    // For more details, see the help for AudioProcessor::prepareToPlay()
+    inputResampler = std::make_unique<gin::ResamplingFifo>(resamplerBlockSize, 1, resamplerMaxSamples);
+    
+    if (currentBlockSize != samplesPerBlockExpected || currentInputSampleRate != sampleRate)
+        meterSource.resize (1, static_cast<int>(sampleRate * 0.1 / samplesPerBlockExpected));
+    
+    if (currentBlockSize != samplesPerBlockExpected)
+    {
+        currentBlockSize = samplesPerBlockExpected;
+        modelBuffer = juce::AudioBuffer<float>(1, currentBlockSize);
+    }
+    
+    if (currentInputSampleRate != sampleRate)
+    {
+        currentInputSampleRate = sampleRate;
+        inputResampler->setResamplingRatio(currentInputSampleRate, targetSampleRate);
+        inputResampler->reset();
+        
+        if (currentInputSampleRate != 16000)
+            should_resample = true;
+        else
+            should_resample = false;
+    }
 }
 
 void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill)
 {
-    // Your audio-processing code goes here!
+    meterSource.measureBlock (*bufferToFill.buffer);
+    
+    ds_result result;
+    
+    if (should_resample)
+    {
+        inputResampler.get()->pushAudioBuffer(*bufferToFill.buffer);
+        
+        while (inputResampler.get()->samplesReady() >= currentBlockSize)
+        {
+            inputResampler.get()->popAudioBuffer(modelBuffer);
+            // Pass audio to DeepSpeech
+            // We take half of buffer_size because buffer is a char* while
+            // LocalDsSTT() expected a short*
+            result = LocalDsSTT(ctx,
+                               (const short*)modelBuffer.getReadPointer(0),
+                               currentBlockSize / 2,
+                               extended_metadata,
+                               json_output);
+            if (!juce::String(result.string).isEmpty())
+            {
+                printf("%s\n", result.string);
+                DS_FreeString((char*)result.string);
+            }
+        }
+    }
+    else
+    {
+        // Pass audio to DeepSpeech
+        // We take half of buffer_size because buffer is a char* while
+        // LocalDsSTT() expected a short*
+        result = LocalDsSTT(ctx,
+                           (const short*)bufferToFill.buffer->getReadPointer(0),
+                           bufferToFill.numSamples / 2,
+                           extended_metadata,
+                           json_output);
+        if (!juce::String(result.string).isEmpty())
+        {
+            printf("%s\n", result.string);
+            DS_FreeString((char*)result.string);
+        }
+    }
 
-    // For more details, see the help for AudioProcessor::getNextAudioBlock()
 
-    // Right now we are not producing any data, in which case we need to clear the buffer
+    // Right now we are not producing any output, so we need to clear the buffer
     // (to prevent the output of random noise)
     bufferToFill.clearActiveBufferRegion();
 }
@@ -106,9 +179,11 @@ void MainComponent::paint (juce::Graphics& g)
 
 void MainComponent::resized()
 {
-    // This is called when the MainContentComponent is resized.
-    // If you add any child components, this is where you should
-    // update their positions.
+    auto bounds = getBounds();
+    
+    meter.setBounds(0, 0, 100, bounds.getHeight());
+
+    selector.setBounds(100, 0, bounds.getWidth()-100, bounds.getHeight());
 }
 
 char* MainComponent::CandidateTranscriptToString(const CandidateTranscript* transcript)
@@ -441,6 +516,15 @@ ds_audio_buffer MainComponent::GetAudioBuffer(const char* path, int desired_samp
     // Close sox handles
     sox_close(output);
     sox_close(input);
+    
+    #if TARGET_OS_OSX
+        res.buffer_size = (size_t)(output->olength * 2);
+        res.buffer = (char*)malloc(sizeof(char) * res.buffer_size);
+        FILE* output_file = fopen(output_name, "rb");
+        assert(fread(res.buffer, sizeof(char), res.buffer_size, output_file) == res.buffer_size);
+        fclose(output_file);
+        unlink(output_name);
+    #endif
 #endif // NO_SOX
 
 #ifdef NO_SOX
@@ -480,15 +564,6 @@ ds_audio_buffer MainComponent::GetAudioBuffer(const char* path, int desired_samp
 
     fclose(wave);
 #endif // NO_SOX
-
-#if TARGET_OS_OSX
-    res.buffer_size = (size_t)(output->olength * 2);
-    res.buffer = (char*)malloc(sizeof(char) * res.buffer_size);
-    FILE* output_file = fopen(output_name, "rb");
-    assert(fread(res.buffer, sizeof(char), res.buffer_size, output_file) == res.buffer_size);
-    fclose(output_file);
-    unlink(output_name);
-#endif
 
     return res;
 }

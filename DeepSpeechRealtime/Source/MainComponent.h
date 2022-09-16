@@ -20,9 +20,9 @@
 #include <TargetConditionals.h>
 #endif
 
-#if defined(__ANDROID__) || defined(_MSC_VER) || TARGET_OS_IPHONE
-#define NO_SOX
-#endif
+//#if defined(__ANDROID__) || defined(_MSC_VER) || TARGET_OS_IPHONE
+#define NO_SOX 1
+//#endif
 
 #if defined(_MSC_VER)
 #define NO_DIR
@@ -88,7 +88,26 @@ private:
     //TODO: 2 Replace with circular buffer-based keyword detector and ViAD logic (Voice inActivity Detector)
     char* audio = NULL;
     
-    const char* hot_words = "genesis";
+    const char* hot_words = "genesis:20";
+    float max_boost = 20.0f; //See: https://deepspeech.readthedocs.io/en/master/HotWordBoosting-Examples.html
+    
+    bool should_resample = false;
+    std::unique_ptr<gin::ResamplingFifo> inputResampler;
+    const int targetSampleRate = 16000;
+    const int maxInputSampleRate = 96000;
+    int currentInputSampleRate;
+    int currentBlockSize;
+    juce::AudioBuffer<float> modelBuffer;
+    
+    foleys::LevelMeterLookAndFeel lnf;
+    foleys::LevelMeter meter { foleys::LevelMeter::MeterFlags::Default };
+    foleys::LevelMeterSource meterSource;
+    
+    juce::AudioDeviceSelectorComponent selector {
+    deviceManager, 2, 2,
+    2, 2,
+    false, false,
+    true, false};
     
     //TODO: Study currently unused options
     bool set_beamwidth = false;
