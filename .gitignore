@@ -81,3 +81,6 @@ libs/toolchains
 LFS/deepspeech-0.9.3-checkpoint.tar.gz
 LFS/deepspeech-0.9.3-models.pbmm
 LFS/deepspeech-0.9.3-models.scorer
+checkpoint/deepspeech-0.9.3-checkpoint.tar.gz
+models/deepspeech-0.9.3-models.pbmm
+scorer/deepspeech-0.9.3-models.scorer
