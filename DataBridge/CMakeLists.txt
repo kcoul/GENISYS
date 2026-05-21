@@ -1,5 +1,5 @@
-juce_add_plugin(GenisysMidiOscPlugin
-    PRODUCT_NAME        "Genisys MidiToOsc"
+juce_add_plugin(DataBridge
+    PRODUCT_NAME        "DataBridge"
     VERSION             "0.1"
     PLUGIN_MANUFACTURER_CODE Gnsy
     PLUGIN_CODE         GmOp
@@ -9,22 +9,22 @@ juce_add_plugin(GenisysMidiOscPlugin
     NEEDS_MIDI_OUTPUT   FALSE
     IS_SYNTH            FALSE)
 
-target_sources(GenisysMidiOscPlugin
+target_sources(DataBridge
     PRIVATE
         Source/PluginProcessor.cpp
         Source/PluginEditor.cpp)
 
-target_include_directories(GenisysMidiOscPlugin
+target_include_directories(DataBridge
     PRIVATE
         Source)
 
-target_compile_definitions(GenisysMidiOscPlugin
+target_compile_definitions(DataBridge
     PUBLIC
         JUCE_WEB_BROWSER=0
         JUCE_USE_CURL=0
         JUCE_VST3_CAN_REPLACE_VST2=0)
 
-target_link_libraries(GenisysMidiOscPlugin
+target_link_libraries(DataBridge
     PRIVATE
         GenisysShared
         juce::juce_audio_processors
