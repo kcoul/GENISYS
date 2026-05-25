@@ -17,7 +17,15 @@ namespace GenisysProtocol
     static constexpr auto ack            = "/genisys/ack";             // string: address being acknowledged
     static constexpr auto error          = "/genisys/error";           // string: human-readable error
 
+    // Backend -> Diagnostic client (continuous stream, always on)
+    static constexpr auto diagTranscript = "/genisys/diag/transcript"; // string: text, int: latency_ms
+    static constexpr auto diagVadStart   = "/genisys/diag/vad_start";  // float: speech_probability
+    static constexpr auto diagVadEnd     = "/genisys/diag/vad_end";    // int: utterance_samples
+    static constexpr auto diagMatch      = "/genisys/diag/match";      // string: transcript, string: command_id (empty = no match)
+    static constexpr auto diagStats      = "/genisys/diag/stats";      // int: total, int: matched, float: avg_latency_ms
+
     // Ports
     static constexpr int backendPort  = 54280;  // Backend listens here
     static constexpr int frontendPort = 54281;  // Frontend listens here (backend replies)
+    static constexpr int diagPort     = 54282;  // DebugConsole listens here
 }

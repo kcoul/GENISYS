@@ -8,14 +8,14 @@
 class MainWindow  : public juce::DocumentWindow
 {
 public:
-    MainWindow (const juce::String& name)
+    MainWindow (const juce::String& name, const juce::String& backendHost)
         : DocumentWindow (name,
                           juce::Desktop::getInstance().getDefaultLookAndFeel()
                               .findColour (juce::ResizableWindow::backgroundColourId),
                           DocumentWindow::allButtons)
     {
         setUsingNativeTitleBar (true);
-        setContentOwned (new MainComponent(), true);
+        setContentOwned (new MainComponent (backendHost), true);
         setResizable (true, true);
         centreWithSize (600, 500);
         setVisible (true);
@@ -31,11 +31,10 @@ public:
         juce::OSCSender     sender;
         juce::OSCReceiver   receiver;
 
-        // The IP/port of the backend — configurable for remote deployment
-        juce::String  backendHost = "127.0.0.1";
+        juce::String  backendHost;
         int           backendPort = GenisysProtocol::backendPort;
 
-        MainComponent()
+        explicit MainComponent (const juce::String& host) : backendHost (host)
         {
             addAndMakeVisible (wizard);
             addAndMakeVisible (statusLabel);
@@ -94,9 +93,15 @@ public:
     const juce::String getApplicationName() override    { return "GenisysFrontend"; }
     const juce::String getApplicationVersion() override { return "0.1"; }
 
-    void initialise (const juce::String&) override
+    void initialise (const juce::String& commandLine) override
     {
-        mainWindow = std::make_unique<MainWindow> (getApplicationName());
+        juce::String backendHost = "127.0.0.1";
+
+        juce::ArgumentList args (getApplicationName(), commandLine);
+        if (args.containsOption ("--backend"))
+            backendHost = args.getValueForOption ("--backend");
+
+        mainWindow = std::make_unique<MainWindow> (getApplicationName(), backendHost);
     }
 
     void shutdown() override { mainWindow.reset(); }
