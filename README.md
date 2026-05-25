@@ -100,7 +100,7 @@ Binaries are collected into `build/dist/`.
 ### 4. Deploy to RPi5
 
 ```bash
-python deploy.py --target-ip pi@192.168.1.100
+python deploy.py --target-ip 192.168.1.100
 ```
 
 ---

@@ -2,8 +2,8 @@
 deploy.py
 Deploys all three GENISYS binaries to an RPi5 target via SFTP.
 
-    python deploy.py --target-ip pi@192.168.1.100
-    python deploy.py --target-ip pi@192.168.1.100 --deploy-path /opt/genisys
+    python deploy.py --target-ip 192.168.1.100
+    python deploy.py --target-ip 192.168.1.100 --deploy-path /opt/genisys
 
 After deploy, on the Pi:
     # Terminal 1 — headless backend (always; --diag sends transcripts to your workstation)
@@ -31,7 +31,7 @@ _BINARIES = ["GenisysBackend", "GenisysFrontend", "GenisysDebugConsole"]
 def main():
     parser = argparse.ArgumentParser(description="Deploy GENISYS binaries to RPi5 via SFTP")
     parser.add_argument("--target-ip",   required=True,
-                        help="Target as user@host or host (e.g. pi@192.168.1.100)")
+                        help="Target IP or hostname (e.g. 192.168.1.100)")
     parser.add_argument("--deploy-path", default="~/genisys",
                         help="Destination directory on target (default: ~/genisys)")
     args = parser.parse_args()
