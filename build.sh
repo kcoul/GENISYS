@@ -94,4 +94,4 @@ collect GenisysDebugConsole "GenisysDebugConsole" "Genisys Debug Console"
 
 echo ""
 echo "=== Done ==="
-echo "  Run:  python deploy.py --target-ip <user>@<pi-ip>"
+echo "  Run:  python deploy.py --target-ip <pi-ip>"
