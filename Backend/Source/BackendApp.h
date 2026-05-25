@@ -54,6 +54,13 @@ public:
         receiver.removeListener (this);
     }
 
+    bool moreThanOneInstanceAllowed() override          { return false; }
+    void anotherInstanceStarted (const juce::String&) override {}
+    void systemRequestedQuit() override                 { quit(); }
+    void suspended() override                           {}
+    void resumed() override                             {}
+    void unhandledException (const std::exception*, const juce::String&, int) override { quit(); }
+
     void oscMessageReceived (const juce::OSCMessage& msg) override
     {
         const auto addr = msg.getAddressPattern().toString();
