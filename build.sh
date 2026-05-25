@@ -68,19 +68,29 @@ cmake -S "$SCRIPT_DIR" -B "$CROSS_BUILD" \
 cmake --build "$CROSS_BUILD"
 
 # ── Step 3: Collect binaries into a flat dist/ directory ────────────────────
+# JUCE names the output binary after PRODUCT_NAME, which may contain spaces.
+# We copy each to a no-space name for deploy.py.
 mkdir -p "$DIST_DIR"
 echo ""
 echo "=== Collecting binaries ==="
-for BIN in GenisysBackend GenisysFrontend GenisysDebugConsole; do
-    # JUCE places build artefacts under <target>_artefacts/<config>/
-    SRC="$(find "$CROSS_BUILD" -type f -name "$BIN" ! -path "*/_deps/*" | head -1)"
-    if [[ -z "$SRC" ]]; then
-        echo "  WARNING: $BIN not found in $CROSS_BUILD"
-    else
-        cp "$SRC" "$DIST_DIR/$BIN"
-        echo "  → dist/$BIN"
-    fi
-done
+collect() {
+    local dest="$1"; shift   # target filename in dist/
+    # remaining args: candidate names to search for (PRODUCT_NAME may differ from target)
+    for name in "$@"; do
+        local src
+        src="$(find "$CROSS_BUILD" -type f -name "$name" ! -path "*/_deps/*" 2>/dev/null | head -1)"
+        if [[ -n "$src" ]]; then
+            cp "$src" "$DIST_DIR/$dest"
+            echo "  → dist/$dest"
+            return
+        fi
+    done
+    echo "  WARNING: $dest not found in $CROSS_BUILD"
+}
+
+collect GenisysBackend      "GenisysBackend"    "Genisys Backend"
+collect GenisysFrontend     "GenisysFrontend"   "Genisys Frontend"
+collect GenisysDebugConsole "GenisysDebugConsole" "Genisys Debug Console"
 
 echo ""
 echo "=== Done ==="
