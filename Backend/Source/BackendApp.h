@@ -5,7 +5,7 @@
 #include "CommandRouter.h"
 #include "VoiceEngine.h"
 
-class BackendApp  : public juce::JUCEApplication,
+class BackendApp  : public juce::JUCEApplicationBase,
                     private juce::OSCReceiver::Listener<juce::OSCReceiver::MessageLoopCallback>
 {
 public:
