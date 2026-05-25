@@ -1,34 +1,47 @@
 set(CMAKE_SYSTEM_NAME      Linux)
 set(CMAKE_SYSTEM_PROCESSOR aarch64)
 
-set(CMAKE_C_COMPILER   aarch64-linux-gnu-gcc)
-set(CMAKE_CXX_COMPILER aarch64-linux-gnu-g++)
+set(ARCH_TRIPLET aarch64-linux-gnu)
+set(CMAKE_LIBRARY_ARCHITECTURE ${ARCH_TRIPLET})
 
-if(DEFINED ENV{SYSROOT})
-    # Full Pi sysroot provided — strict mode, find only within it.
-    set(CMAKE_SYSROOT           "$ENV{SYSROOT}")
-    set(CMAKE_FIND_ROOT_PATH    "$ENV{SYSROOT}")
-else()
-    # Ubuntu multiarch layout (no separate sysroot).
-    # One-time setup:
-    #   sudo dpkg --add-architecture arm64
-    #   sudo apt install \
-    #       libasound2-dev:arm64 \
-    #       libfreetype-dev:arm64 libfontconfig1-dev:arm64 \
-    #       libx11-dev:arm64 libxrandr-dev:arm64 libxinerama-dev:arm64 \
-    #       libxcursor-dev:arm64 libxext-dev:arm64
-    #
-    # CMAKE_SYSROOT=/ + CMAKE_LIBRARY_ARCHITECTURE directs find_library to
-    # /usr/lib/aarch64-linux-gnu/ instead of /usr/lib/x86_64-linux-gnu/.
-    set(CMAKE_SYSROOT              /)
-    set(CMAKE_LIBRARY_ARCHITECTURE aarch64-linux-gnu)
-    set(CMAKE_FIND_ROOT_PATH       /usr/lib/aarch64-linux-gnu /usr/aarch64-linux-gnu)
+# ── Compilers ────────────────────────────────────────────────────────────────
+set(CMAKE_C_COMPILER   /usr/bin/aarch64-linux-gnu-gcc)
+set(CMAKE_CXX_COMPILER /usr/bin/aarch64-linux-gnu-g++)
 
-    # Redirect pkg-config to aarch64 .pc files.
-    # Without this, find_package(PkgConfig) + pkg_check_modules() returns x86_64 library paths.
-    set(ENV{PKG_CONFIG_LIBDIR} "/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/share/pkgconfig")
-    set(ENV{PKG_CONFIG_PATH}   "")
-endif()
+# ── Linker: prioritise arm64 lib directory ───────────────────────────────────
+set(CMAKE_EXE_LINKER_FLAGS_INIT
+    "-L/usr/lib/${ARCH_TRIPLET} -Wl,-rpath-link,/usr/lib/${ARCH_TRIPLET}")
+set(CMAKE_SHARED_LINKER_FLAGS_INIT
+    "-L/usr/lib/${ARCH_TRIPLET} -Wl,-rpath-link,/usr/lib/${ARCH_TRIPLET}")
+
+# ── pkg-config: use the cross wrapper, restrict to arm64 .pc files ───────────
+set(PKG_CONFIG_EXECUTABLE /usr/bin/aarch64-linux-gnu-pkg-config
+    CACHE FILEPATH "pkg-config executable")
+set(ENV{PKG_CONFIG_DIR}        "")
+set(ENV{PKG_CONFIG_LIBDIR}     "/usr/lib/${ARCH_TRIPLET}/pkgconfig:/usr/share/pkgconfig")
+set(ENV{PKG_CONFIG_SYSROOT_DIR} "/")
+set(ENV{PKG_CONFIG_PATH}       "")
+
+# ── Explicit arm64 library paths (stop CMake picking up host x86_64 libs) ────
+set(ALSA_LIBRARY          "/usr/lib/${ARCH_TRIPLET}/libasound.so"    CACHE FILEPATH "" FORCE)
+set(ALSA_INCLUDE_DIR      "/usr/include"                              CACHE PATH     "" FORCE)
+set(ALSA_LIBRARIES        "/usr/lib/${ARCH_TRIPLET}/libasound.so"    CACHE FILEPATH "" FORCE)
+set(FONTCONFIG_LIBRARIES  "/usr/lib/${ARCH_TRIPLET}/libfontconfig.so" CACHE FILEPATH "" FORCE)
+set(FREETYPE_LIBRARIES    "/usr/lib/${ARCH_TRIPLET}/libfreetype.so"   CACHE FILEPATH "" FORCE)
+set(OPENGL_gl_LIBRARY     "/usr/lib/${ARCH_TRIPLET}/libGL.so"        CACHE FILEPATH "" FORCE)
+
+# ── HailoRT cross prefix ─────────────────────────────────────────────────────
+# Extract the arm64 HailoRT .deb once:
+#   sudo mkdir -p /opt/hailo-cross/arm64
+#   sudo dpkg-deb -x hailort_<ver>_arm64.deb /opt/hailo-cross/arm64
+# See SurgeMidiToOscBridge/docs/cross-compile-linux-aarch64-ubuntu.md for details.
+set(HAILO_CROSS_PREFIX "/opt/hailo-cross/arm64" CACHE PATH
+    "Root of extracted arm64 HailoRT .deb (for find_package(HailoRT))")
+
+# ── CMake find root path ─────────────────────────────────────────────────────
+# HAILO_CROSS_PREFIX first so its HailoRTConfig.cmake takes precedence over
+# any host-architecture HailoRT that may also be installed.
+set(CMAKE_FIND_ROOT_PATH ${HAILO_CROSS_PREFIX} /usr/lib/${ARCH_TRIPLET} /usr)
 
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
