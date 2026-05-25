@@ -2,14 +2,19 @@
 # Cross-compile all three GENISYS binaries for aarch64 Ubuntu/RPi OS (RPi5) from WSL2.
 #
 # Prerequisites (WSL2/Ubuntu host):
-#   sudo apt install cmake ninja-build \
-#       gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
-#       libfreetype-dev libfontconfig-dev \
-#       libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxext-dev \
-#       libasound2-dev
+#   # Build tools + aarch64 cross-compiler
+#   sudo apt install cmake ninja-build gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 #
-#   If host and target libraries conflict (e.g. arm64 packages shadow x86_64),
-#   provide a sysroot with the target's headers/libs instead:
+#   # Enable arm64 multiarch and install target libraries
+#   sudo dpkg --add-architecture arm64
+#   sudo apt update
+#   sudo apt install \
+#       libasound2-dev:arm64 \
+#       libfreetype-dev:arm64 libfontconfig1-dev:arm64 \
+#       libx11-dev:arm64 libxrandr-dev:arm64 libxinerama-dev:arm64 \
+#       libxcursor-dev:arm64 libxext-dev:arm64
+#
+#   Optional: provide a full Pi sysroot to avoid multiarch setup:
 #     export SYSROOT=/path/to/rpi5-sysroot
 #
 # Usage:
