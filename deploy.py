@@ -5,6 +5,9 @@ Deploys all three GENISYS binaries to an RPi5 target via SFTP.
     python deploy.py --target-ip 192.168.1.100
     python deploy.py --target-ip 192.168.1.100 --deploy-path /opt/genisys
 
+NOTE: stop any running GENISYS processes on the target before deploying —
+SFTP cannot overwrite a binary that is currently executing.
+
 After deploy, on the Pi:
     # Terminal 1 — headless backend (always; --diag sends transcripts to your workstation)
     ~/genisys/GenisysBackend [--diag <workstation-ip>]
