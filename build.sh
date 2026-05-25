@@ -8,7 +8,7 @@
 #       libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxext-dev \
 #       libasound2-dev
 #
-#   If host and target libraries conflict (e.g. x86_64 vs aarch64 packages),
+#   If host and target libraries conflict (e.g. arm64 packages shadow x86_64),
 #   provide a sysroot with the target's headers/libs instead:
 #     export SYSROOT=/path/to/rpi5-sysroot
 #
@@ -29,31 +29,34 @@ if [[ "${1:-}" == "--hailo" ]]; then
     HAILO=ON
 fi
 
-# ── Step 1: Native host build — produces juceaide only ───────────────────────
-# JUCE needs juceaide (a code-generation tool) to run on the *build* machine.
-# We configure the full project natively so CMake wires it up, then build only
-# that one target before switching to the cross toolchain.
-echo "=== Step 1: Build native juceaide ==="
+# ── Step 1: Configure natively to bootstrap juceaide ─────────────────────────
+# JUCE builds juceaide via execute_process during CMake *configure* (not during
+# the build step). It ends up as an IMPORTED target, so there is no Ninja rule
+# for it — attempting --target juceaide will always fail.  We just need the
+# configure step to complete; by then the binary exists on disk.
+echo "=== Step 1: Native configure (bootstraps juceaide) ==="
 cmake -S "$SCRIPT_DIR" -B "$NATIVE_BUILD" \
     -DCMAKE_BUILD_TYPE=Release \
     -DGENISYS_HAS_HAILO=OFF \
     -G Ninja
-cmake --build "$NATIVE_BUILD" --target juceaide
 
-JUCEAIDE_DIR="$NATIVE_BUILD/JUCE/extras/Build/juceaide"
-if [[ ! -x "$JUCEAIDE_DIR/juceaide" ]]; then
-    echo "ERROR: juceaide not found at $JUCEAIDE_DIR/juceaide"
-    echo "  The path changed — try: find $NATIVE_BUILD -name juceaide -type f"
+# JUCE writes the bootstrap binary under <native_build>/JUCE/tools/
+JUCEAIDE_EXE="$(find "$NATIVE_BUILD/JUCE" -name "juceaide" -type f 2>/dev/null | head -1)"
+if [[ -z "$JUCEAIDE_EXE" || ! -x "$JUCEAIDE_EXE" ]]; then
+    echo "ERROR: juceaide binary not found under $NATIVE_BUILD/JUCE"
+    echo "  Hint: $(find "$NATIVE_BUILD" -name "juceaide" 2>/dev/null | head -5)"
     exit 1
 fi
-echo "  juceaide: $JUCEAIDE_DIR/juceaide"
+echo "  juceaide: $JUCEAIDE_EXE"
 
 # ── Step 2: Cross-compile all three GENISYS targets ──────────────────────────
+# JUCE_JUCEAIDE_PATH: when defined, JUCE imports that binary directly and skips
+# the bootstrap entirely — no chicken-and-egg problem for cross builds.
 echo ""
 echo "=== Step 2: Cross-compile GENISYS for aarch64 (GENISYS_HAS_HAILO=$HAILO) ==="
 cmake -S "$SCRIPT_DIR" -B "$CROSS_BUILD" \
     -DCMAKE_TOOLCHAIN_FILE="$SCRIPT_DIR/cmake/toolchain-aarch64-linux.cmake" \
-    -DJUCE_TOOL_INSTALL_DIR="$JUCEAIDE_DIR" \
+    -DJUCE_JUCEAIDE_PATH="$JUCEAIDE_EXE" \
     -DGENISYS_HAS_HAILO="$HAILO" \
     -DCMAKE_BUILD_TYPE=Release \
     -G Ninja
