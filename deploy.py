@@ -19,6 +19,7 @@ After deploy, on the Pi:
     ~/genisys/GenisysDebugConsole
 """
 
+import glob
 import os
 import getpass
 import argparse
@@ -68,6 +69,13 @@ def main():
         print(f"  → {binary}")
         sftp.put(local_path, remote_path)
         sftp.chmod(remote_path, 0o755)
+
+    # Deploy ONNX Runtime shared libs (libonnxruntime.so* alongside the binary).
+    for so_file in sorted(glob.glob(os.path.join(_DIST, "libonnxruntime*.so*"))):
+        fname = os.path.basename(so_file)
+        remote = deploy_dir.rstrip('/') + '/' + fname
+        print(f"  → {fname}")
+        sftp.put(so_file, remote)
 
     # Deploy model files (Hailo HEFs, etc.) preserving the dist/ subdirectory layout.
     models_src = os.path.join(_DIST, "models")

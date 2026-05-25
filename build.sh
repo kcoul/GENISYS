@@ -92,6 +92,15 @@ collect GenisysBackend      "GenisysBackend"    "Genisys Backend"
 collect GenisysFrontend     "GenisysFrontend"   "Genisys Frontend"
 collect GenisysDebugConsole "GenisysDebugConsole" "Genisys Debug Console"
 
+# Collect ONNX Runtime shared libs (needed at runtime alongside GenisysBackend).
+ORT_LIB_DIR="$(find "$CROSS_BUILD/_deps/onnxruntime_fetch-src" -name "libonnxruntime.so*" -type f 2>/dev/null | head -1 | xargs -r dirname)"
+if [[ -n "$ORT_LIB_DIR" ]]; then
+    while IFS= read -r f; do
+        cp -L "$f" "$DIST_DIR/$(basename "$f")"
+        echo "  → dist/$(basename "$f")"
+    done < <(find "$ORT_LIB_DIR" -name "libonnxruntime*.so*" \( -type f -o -type l \) 2>/dev/null)
+fi
+
 # Collect Hailo HEF models copied next to the backend binary during POST_BUILD.
 HEF_SRC="$CROSS_BUILD/Backend/models/hailo10h"
 if [[ -d "$HEF_SRC" ]]; then

@@ -35,6 +35,11 @@ if(GENISYS_HAS_HAILO)
 
     include("${CMAKE_CURRENT_SOURCE_DIR}/../cmake/FetchOnnxRuntime.cmake")
 
+    # libonnxruntime.so ships next to the binary; tell the dynamic linker to look there.
+    set_target_properties(GenisysBackend PROPERTIES
+        BUILD_RPATH  "$ORIGIN"
+        INSTALL_RPATH "$ORIGIN")
+
     target_link_libraries(GenisysBackend PRIVATE
         HailoRT::libhailort
         onnxruntime::onnxruntime
