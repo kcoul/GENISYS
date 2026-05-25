@@ -19,6 +19,8 @@ public:
             frontendHost = args.getValueForOption ("--frontend");
         if (args.containsOption ("--diag"))
             diagHost = args.getValueForOption ("--diag");
+        if (args.containsOption ("--model"))
+            modelName = normaliseModelName (args.getValueForOption ("--model"));
 
         if (! frontendSender.connect (frontendHost, GenisysProtocol::frontendPort))
             juce::Logger::writeToLog ("Backend: warning — could not connect frontend sender to "
@@ -39,11 +41,12 @@ public:
         juce::Logger::writeToLog ("GenisysBackend listening on port "
                                   + juce::String (GenisysProtocol::backendPort)
                                   + "  diag -> " + diagHost
-                                  + ":" + juce::String (GenisysProtocol::diagPort));
+                                  + ":" + juce::String (GenisysProtocol::diagPort)
+                                  + "  model -> Whisper-" + modelName);
 
         wireVoiceEngine();
 
-        if (! voice.start())
+        if (! voice.start (modelName))
             juce::Logger::writeToLog ("Backend: voice engine not started"
                                       " (build without GENISYS_HAS_HAILO, or Hailo unavailable)");
     }
@@ -140,8 +143,17 @@ private:
     CommandRouter     router;
     VoiceEngine       voice;
 
+    static juce::String normaliseModelName (const juce::String& s)
+    {
+        const auto lower = s.toLowerCase().trim();
+        if (lower == "base"  || lower == "b") return "Base";
+        if (lower == "small" || lower == "s") return "Small";
+        return "Tiny";
+    }
+
     juce::String frontendHost { "127.0.0.1" };
     juce::String diagHost     { "127.0.0.1" };
+    juce::String modelName    { "Tiny" };
 
     int   totalUtterances   = 0;
     int   matchedUtterances = 0;

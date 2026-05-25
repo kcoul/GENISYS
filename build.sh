@@ -92,6 +92,17 @@ collect GenisysBackend      "GenisysBackend"    "Genisys Backend"
 collect GenisysFrontend     "GenisysFrontend"   "Genisys Frontend"
 collect GenisysDebugConsole "GenisysDebugConsole" "Genisys Debug Console"
 
+# Collect Hailo HEF models copied next to the backend binary during POST_BUILD.
+HEF_SRC="$CROSS_BUILD/Backend/models/hailo10h"
+if [[ -d "$HEF_SRC" ]]; then
+    mkdir -p "$DIST_DIR/models/hailo10h"
+    if cp "$HEF_SRC/"*.hef "$DIST_DIR/models/hailo10h/" 2>/dev/null; then
+        echo "  → dist/models/hailo10h/*.hef"
+    else
+        echo "  WARNING: no .hef files found in $HEF_SRC"
+    fi
+fi
+
 echo ""
 echo "=== Done ==="
 echo "  Run:  python deploy.py --target-ip <pi-ip>"

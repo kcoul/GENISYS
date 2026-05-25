@@ -50,10 +50,10 @@ if(GENISYS_HAS_HAILO)
         whisper
         juce::juce_audio_devices)
 
-    # Embed silero VAD model.
-    set(_vad_model    "${CMAKE_CURRENT_SOURCE_DIR}/../../surge/libs/whisper.cpp/models/ggml-silero-v6.2.0.bin")
-    set(_embed_script "${CMAKE_CURRENT_SOURCE_DIR}/../../surge/extras/SurgeMidiToOscBridge/tools/embed_binary_as_c.cmake")
-    set(_gen_dir      "${CMAKE_CURRENT_BINARY_DIR}/generated")
+    # Embed silero VAD model via incbin (assembler .incbin — near-instant compile).
+    set(_vad_model   "${CMAKE_CURRENT_SOURCE_DIR}/../../surge/libs/whisper.cpp/models/ggml-silero-v6.2.0.bin")
+    set(_incbin_dir  "${CMAKE_CURRENT_SOURCE_DIR}/../../surge/libs/incbin")
+    set(_gen_dir     "${CMAKE_CURRENT_BINARY_DIR}/generated")
 
     if(NOT EXISTS "${_vad_model}")
         message(STATUS "GenisysBackend: downloading silero VAD model...")
@@ -68,21 +68,13 @@ if(GENISYS_HAS_HAILO)
         endif()
     endif()
 
-    if(EXISTS "${_vad_model}" AND EXISTS "${_embed_script}")
+    if(EXISTS "${_vad_model}")
         file(MAKE_DIRECTORY "${_gen_dir}")
-        add_custom_command(
-            OUTPUT  "${_gen_dir}/embedded_vad_model.h"
-                    "${_gen_dir}/embedded_vad_model.cpp"
-            COMMAND "${CMAKE_COMMAND}"
-                    -DINPUT=${_vad_model}
-                    -DOUTPUT_H=${_gen_dir}/embedded_vad_model.h
-                    -DOUTPUT_CPP=${_gen_dir}/embedded_vad_model.cpp
-                    -DSYMBOL=ggml_silero_vad_model
-                    -P "${_embed_script}"
-            DEPENDS "${_vad_model}" "${_embed_script}"
-            COMMENT "Embedding silero VAD model into GenisysBackend")
-        target_sources(GenisysBackend PRIVATE "${_gen_dir}/embedded_vad_model.cpp")
-        target_include_directories(GenisysBackend PRIVATE "${_gen_dir}")
+        set(VAD_MODEL_PATH "${_vad_model}")
+        configure_file("${_incbin_dir}/vad_model_embed.c.in"
+                       "${_gen_dir}/vad_model_embed.c" @ONLY)
+        target_sources(GenisysBackend PRIVATE "${_gen_dir}/vad_model_embed.c")
+        target_include_directories(GenisysBackend PRIVATE "${_incbin_dir}")
         target_compile_definitions(GenisysBackend PRIVATE GENISYS_HAS_EMBEDDED_VAD=1)
     else()
         target_compile_definitions(GenisysBackend PRIVATE GENISYS_HAS_EMBEDDED_VAD=0)
@@ -93,16 +85,18 @@ if(GENISYS_HAS_HAILO)
         target_compile_definitions(GenisysBackend PRIVATE NOMINMAX=1)
     endif()
 
-    # Copy Whisper-Tiny.hef next to the binary.
+    # Copy Whisper HEF models (Tiny / Base / Small) next to the binary.
     set(_hailo_models_dir "${CMAKE_CURRENT_SOURCE_DIR}/../../surge/extras/SurgeMidiToOscBridge/Resources/models/hailo10h")
-    set(_hef_src "${_hailo_models_dir}/Whisper-Tiny.hef")
-    if(EXISTS "${_hef_src}")
-        add_custom_command(TARGET GenisysBackend POST_BUILD
-            COMMAND "${CMAKE_COMMAND}" -E make_directory
-                    "$<TARGET_FILE_DIR:GenisysBackend>/models/hailo10h"
-            COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-                    "${_hef_src}"
-                    "$<TARGET_FILE_DIR:GenisysBackend>/models/hailo10h/Whisper-Tiny.hef"
-            COMMENT "Copying Whisper-Tiny.hef next to GenisysBackend binary")
-    endif()
+    foreach(_hef_name Tiny Base Small)
+        set(_hef_src "${_hailo_models_dir}/Whisper-${_hef_name}.hef")
+        if(EXISTS "${_hef_src}")
+            add_custom_command(TARGET GenisysBackend POST_BUILD
+                COMMAND "${CMAKE_COMMAND}" -E make_directory
+                        "$<TARGET_FILE_DIR:GenisysBackend>/models/hailo10h"
+                COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+                        "${_hef_src}"
+                        "$<TARGET_FILE_DIR:GenisysBackend>/models/hailo10h/Whisper-${_hef_name}.hef"
+                COMMENT "Copying Whisper-${_hef_name}.hef next to GenisysBackend binary")
+        endif()
+    endforeach()
 endif()

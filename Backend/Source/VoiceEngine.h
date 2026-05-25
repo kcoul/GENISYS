@@ -28,7 +28,7 @@ public:
     // Matching: first keyword whose lowercase form appears in the lowercased transcript wins.
     void setVocabulary (std::vector<std::pair<juce::String, juce::String>> vocab);
 
-    bool start();
+    bool start (const juce::String& modelName = "Tiny");
     void stop();
     bool isRunning() const noexcept { return running.load(); }
 

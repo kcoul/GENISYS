@@ -69,6 +69,19 @@ def main():
         sftp.put(local_path, remote_path)
         sftp.chmod(remote_path, 0o755)
 
+    # Deploy model files (Hailo HEFs, etc.) preserving the dist/ subdirectory layout.
+    models_src = os.path.join(_DIST, "models")
+    if os.path.isdir(models_src):
+        for dirpath, _, filenames in os.walk(models_src):
+            rel_dir = os.path.relpath(dirpath, _DIST).replace(os.sep, '/')
+            remote_dir = deploy_dir.rstrip('/') + '/' + rel_dir
+            client.exec_command(f'mkdir -p "{remote_dir}"')
+            for fname in sorted(filenames):
+                local  = os.path.join(dirpath, fname)
+                remote = remote_dir + '/' + fname
+                print(f"  → {rel_dir}/{fname}")
+                sftp.put(local, remote)
+
     # Write a convenience launch script for the backend
     run_sh = (
         "#!/bin/sh\n"
