@@ -80,16 +80,16 @@ def main():
     client.close()
 
     print(f"\nDeployed to {args.target_ip}:{deploy_dir}")
-    print("\nTo test without Hailo (OSC + UI only):")
-    print(f"  [Pi]            {deploy_dir}/GenisysBackend")
-    print(f"  [Pi display]    {deploy_dir}/GenisysFrontend --backend 127.0.0.1")
-    print(f"  [Pi or any host]{deploy_dir}/GenisysDebugConsole")
+    print("\nTo run on the Pi:")
+    print(f"  {deploy_dir}/GenisysBackend [--diag <your-ip>]")
+    print(f"  {deploy_dir}/GenisysFrontend [--backend 127.0.0.1]")
+    print(f"  {deploy_dir}/GenisysDebugConsole")
     print()
-    print("DebugConsole shows '○ waiting for backend' until a diag OSC message arrives.")
-    print("Without Hailo, test the signal watchdog by sending a dummy OSC packet to port 54282:")
-    print("  python -c \"import socket; s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); "
-          "s.sendto(b'/genisys/diag/transcript\\x00\\x00\\x00\\x00,ss\\x00test\\x00\\x00\\x00\\x00\\x00\\x00\\x00', "
-          "('127.0.0.1', 54282))\"")
+    print("To simulate a voice transcript without Hailo (trips the DebugConsole signal watchdog):")
+    print("  pip install python-osc")
+    print(f"  python -c \"from pythonosc import udp_client; "
+          f"udp_client.SimpleUDPClient('{host}', 54282)"
+          f".send_message('/genisys/diag/transcript', ['hello genisys', 0])\"")
 
 if __name__ == "__main__":
     main()
