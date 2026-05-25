@@ -13,8 +13,8 @@
 #     export SYSROOT=/path/to/rpi5-sysroot
 #
 # Usage:
-#   ./build.sh            # GENISYS_HAS_HAILO=OFF  (OSC + UI, no voice — for early testing)
-#   ./build.sh --hailo    # GENISYS_HAS_HAILO=ON   (requires HailoRT SDK on the build host)
+#   ./build.sh             # GENISYS_HAS_HAILO=ON   (default — backend always targets RPi5+Hailo)
+#   ./build.sh --no-hailo  # GENISYS_HAS_HAILO=OFF  (OSC + UI only, no HailoRT SDK required)
 
 set -euo pipefail
 
@@ -24,9 +24,9 @@ NATIVE_BUILD="$BUILD_DIR/native"
 CROSS_BUILD="$BUILD_DIR/aarch64-linux"
 DIST_DIR="$BUILD_DIR/dist"
 
-HAILO=OFF
-if [[ "${1:-}" == "--hailo" ]]; then
-    HAILO=ON
+HAILO=ON
+if [[ "${1:-}" == "--no-hailo" ]]; then
+    HAILO=OFF
 fi
 
 # ── Step 1: Configure natively to bootstrap juceaide ─────────────────────────
