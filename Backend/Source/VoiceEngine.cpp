@@ -25,6 +25,14 @@
 
 #include "SileroVad.h"
 
+#ifndef GENISYS_HAS_EMBEDDED_SILERO_VAD
+#define GENISYS_HAS_EMBEDDED_SILERO_VAD 0
+#endif
+
+#if GENISYS_HAS_EMBEDDED_SILERO_VAD
+#include "embedded_silero_vad.h"
+#endif
+
 #endif // GENISYS_HAS_HAILO
 
 #include "VoiceEngine.h"
@@ -218,10 +226,18 @@ juce::String VoiceEngine::matchVocabulary (const juce::String& transcript) const
 void VoiceEngine::workerLoop (std::string hefPath)
 {
     // ── Silero VAD init ───────────────────────────────────────────────────────
-    const auto vadModelFile = juce::File::getSpecialLocation (juce::File::currentExecutableFile)
-                                  .getParentDirectory().getChildFile ("silero_vad.onnx");
     std::unique_ptr<SileroVad> vad;
-    try { vad = std::make_unique<SileroVad> (vadModelFile.getFullPathName().toStdString()); }
+    try
+    {
+#if GENISYS_HAS_EMBEDDED_SILERO_VAD
+        vad = std::make_unique<SileroVad> (gSileroVadOnnxData,
+                                            static_cast<size_t> (gSileroVadOnnxSize));
+#else
+        const auto vadModelFile = juce::File::getSpecialLocation (juce::File::currentExecutableFile)
+                                      .getParentDirectory().getChildFile ("silero_vad.onnx");
+        vad = std::make_unique<SileroVad> (vadModelFile.getFullPathName().toStdString());
+#endif
+    }
     catch (const std::exception& e)
     {
         juce::MessageManager::callAsync ([this, msg = juce::String (e.what())] {
