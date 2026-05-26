@@ -118,11 +118,13 @@ private:
 
         voice.onVadStart = [this] (float prob)
         {
+            juce::Logger::writeToLog ("VAD: speech start  p=" + juce::String (prob, 2));
             diagSender.send (GenisysProtocol::diagVadStart, prob);
         };
 
         voice.onVadEnd = [this] (int samples)
         {
+            juce::Logger::writeToLog ("VAD: end  " + juce::String (samples / 16) + "ms -> Whisper");
             diagSender.send (GenisysProtocol::diagVadEnd, samples);
         };
     }
