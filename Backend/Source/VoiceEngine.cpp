@@ -3,15 +3,6 @@
 //   - per-utterance latency measurement
 //   - keyword vocabulary matching
 //   - VAD start/end callbacks for diagnostic telemetry
-//
-// Compiled only when GENISYS_HAS_HAILO=1.
-
-#ifndef GENISYS_HAS_HAILO
-#define GENISYS_HAS_HAILO 0
-#endif
-
-#if GENISYS_HAS_HAILO
-
 #ifdef _WIN32
 #  define _HAILO_HAILORT_DEFAULTS_HPP_
 #endif
@@ -33,8 +24,6 @@
 #include "embedded_silero_vad.h"
 #endif
 
-#endif // GENISYS_HAS_HAILO
-
 #include "VoiceEngine.h"
 
 #include <algorithm>
@@ -43,34 +32,6 @@
 #include <cstring>
 #include <memory>
 #include <stdexcept>
-
-// =============================================================================
-// Non-Hailo stubs — keeps the rest of the codebase compiling on any platform.
-// =============================================================================
-#if !GENISYS_HAS_HAILO
-
-VoiceEngine::~VoiceEngine() {}
-
-void VoiceEngine::setVocabulary (std::vector<std::pair<juce::String, juce::String>> vocab)
-{
-    std::lock_guard<std::mutex> lock (vocabMutex);
-    vocabulary = std::move (vocab);
-}
-
-bool VoiceEngine::start (const juce::String&) { return false; }
-void VoiceEngine::stop()  {}
-
-void VoiceEngine::audioDeviceAboutToStart (juce::AudioIODevice*)          {}
-void VoiceEngine::audioDeviceStopped()                                    {}
-void VoiceEngine::audioDeviceIOCallbackWithContext (const float* const*, int,
-                                                    float* const*, int, int,
-                                                    const juce::AudioIODeviceCallbackContext&) {}
-void VoiceEngine::workerLoop (std::string) {}
-
-juce::String VoiceEngine::matchVocabulary (const juce::String&) const { return {}; }
-std::vector<float> VoiceEngine::resampleToWhisperRate (const std::vector<float>& v, double) { return v; }
-
-#else // GENISYS_HAS_HAILO
 
 // =============================================================================
 // Hailo implementation
@@ -86,6 +47,19 @@ constexpr double vadEndSilenceSeconds   = 0.28;
 constexpr double vadMaxUtteranceSeconds = 2.5;
 constexpr float  vadSpeechThreshold     = 0.50f;
 constexpr auto   hailoVDeviceGroupId    = "SHARED";
+
+static double normaliseInputSampleRate (double sampleRate)
+{
+    return std::isfinite (sampleRate) && sampleRate > 0.0
+               ? sampleRate
+               : static_cast<double> (whisperSampleRate);
+}
+
+static size_t getInputSamplesPerVadFrame (double sampleRate)
+{
+    return static_cast<size_t> (
+        std::max (1.0, std::round (normaliseInputSampleRate (sampleRate) * vadFrameSeconds)));
+}
 
 static std::string findHailoWhisperHef (const juce::String& modelName)
 {
@@ -177,9 +151,19 @@ void VoiceEngine::stop()
 
 void VoiceEngine::audioDeviceAboutToStart (juce::AudioIODevice* device)
 {
-    std::lock_guard<std::mutex> lock (mutex);
-    micSampleRate = device != nullptr ? device->getCurrentSampleRate() : whisperSampleRate;
-    micBuffer.clear();
+    double sampleRate = whisperSampleRate;
+
+    {
+        std::lock_guard<std::mutex> lock (mutex);
+        micSampleRate = normaliseInputSampleRate (device != nullptr ? device->getCurrentSampleRate()
+                                                                    : whisperSampleRate);
+        micBuffer.clear();
+        sampleRate = micSampleRate;
+    }
+
+    juce::Logger::writeToLog ("VoiceEngine: input sample rate "
+                              + juce::String (sampleRate, 1)
+                              + " Hz; resampling to 16000 Hz");
 }
 
 void VoiceEngine::audioDeviceStopped()
@@ -288,13 +272,13 @@ void VoiceEngine::workerLoop (std::string hefPath)
         {
             std::unique_lock<std::mutex> lock (mutex);
             cv.wait (lock, [this] {
-                const auto needed = static_cast<size_t> (micSampleRate * vadFrameSeconds);
+                const auto needed = getInputSamplesPerVadFrame (micSampleRate);
                 return shouldStop.load() || micBuffer.size() >= needed;
             });
             if (shouldStop.load()) break;
 
-            sampleRate        = micSampleRate;
-            const auto needed = static_cast<size_t> (sampleRate * vadFrameSeconds);
+            sampleRate        = normaliseInputSampleRate (micSampleRate);
+            const auto needed = getInputSamplesPerVadFrame (sampleRate);
             if (micBuffer.size() < needed) continue;
 
             if (! speechActive && micBuffer.size() > needed * 20)
@@ -307,8 +291,8 @@ void VoiceEngine::workerLoop (std::string hefPath)
         auto pcm16k = resampleToWhisperRate (chunk, sampleRate);
         if (pcm16k.empty()) continue;
 
-        // Pad to Silero window size if resampling gave slightly fewer samples.
-        if (pcm16k.size() < static_cast<size_t> (SileroVad::kWindowSamples))
+        // Silero requires exactly one 512-sample, 16 kHz frame.
+        if (pcm16k.size() != static_cast<size_t> (SileroVad::kWindowSamples))
             pcm16k.resize (static_cast<size_t> (SileroVad::kWindowSamples), 0.0f);
 
         const float prob          = vad->predict (pcm16k.data());
@@ -399,8 +383,10 @@ std::vector<float> VoiceEngine::resampleToWhisperRate (const std::vector<float>&
     if (input.empty()) return {};
     if (std::abs (inputRate - whisperSampleRate) < 1.0) return input;
 
+    inputRate = normaliseInputSampleRate (inputRate);
+
     const auto outputSize = static_cast<size_t> (
-        std::max (1.0, std::floor (static_cast<double> (input.size()) * whisperSampleRate / inputRate)));
+        std::max (1.0, std::round (static_cast<double> (input.size()) * whisperSampleRate / inputRate)));
     std::vector<float> output (outputSize);
     const auto ratio = inputRate / static_cast<double> (whisperSampleRate);
     for (size_t i = 0; i < output.size(); ++i)
@@ -414,5 +400,3 @@ std::vector<float> VoiceEngine::resampleToWhisperRate (const std::vector<float>&
     }
     return output;
 }
-
-#endif // GENISYS_HAS_HAILO

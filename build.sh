@@ -18,21 +18,16 @@
 #     export SYSROOT=/path/to/rpi5-sysroot
 #
 # Usage:
-#   ./build.sh             # GENISYS_HAS_HAILO=ON   (default — backend always targets RPi5+Hailo)
-#   ./build.sh --no-hailo  # GENISYS_HAS_HAILO=OFF  (OSC + UI only, no HailoRT SDK required)
+#   ./build.sh
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+JUCE_DIR="$SCRIPT_DIR/libs/JUCE"
 BUILD_DIR="$SCRIPT_DIR/build"
 NATIVE_BUILD="$BUILD_DIR/native"
 CROSS_BUILD="$BUILD_DIR/aarch64-linux"
 DIST_DIR="$BUILD_DIR/dist"
-
-HAILO=ON
-if [[ "${1:-}" == "--no-hailo" ]]; then
-    HAILO=OFF
-fi
 
 # ── Step 1: Configure natively to bootstrap juceaide ─────────────────────────
 # JUCE builds juceaide via execute_process during CMake *configure* (not during
@@ -40,15 +35,14 @@ fi
 # for it — attempting --target juceaide will always fail.  We just need the
 # configure step to complete; by then the binary exists on disk.
 echo "=== Step 1: Native configure (bootstraps juceaide) ==="
-cmake -S "$SCRIPT_DIR" -B "$NATIVE_BUILD" \
+cmake -S "$JUCE_DIR" -B "$NATIVE_BUILD" \
     -DCMAKE_BUILD_TYPE=Release \
-    -DGENISYS_HAS_HAILO=OFF \
     -G Ninja
 
-# JUCE writes the bootstrap binary under <native_build>/JUCE/tools/
-JUCEAIDE_EXE="$(find "$NATIVE_BUILD/JUCE" -name "juceaide" -type f 2>/dev/null | head -1)"
+# Find the bootstrap binary produced by the native JUCE configure.
+JUCEAIDE_EXE="$(find "$NATIVE_BUILD" -name "juceaide" -type f 2>/dev/null | head -1)"
 if [[ -z "$JUCEAIDE_EXE" || ! -x "$JUCEAIDE_EXE" ]]; then
-    echo "ERROR: juceaide binary not found under $NATIVE_BUILD/JUCE"
+    echo "ERROR: juceaide binary not found under $NATIVE_BUILD"
     echo "  Hint: $(find "$NATIVE_BUILD" -name "juceaide" 2>/dev/null | head -5)"
     exit 1
 fi
@@ -58,11 +52,10 @@ echo "  juceaide: $JUCEAIDE_EXE"
 # JUCE_JUCEAIDE_PATH: when defined, JUCE imports that binary directly and skips
 # the bootstrap entirely — no chicken-and-egg problem for cross builds.
 echo ""
-echo "=== Step 2: Cross-compile GENISYS for aarch64 (GENISYS_HAS_HAILO=$HAILO) ==="
+echo "=== Step 2: Cross-compile GENISYS for aarch64 with Hailo ==="
 cmake -S "$SCRIPT_DIR" -B "$CROSS_BUILD" \
     -DCMAKE_TOOLCHAIN_FILE="$SCRIPT_DIR/cmake/toolchain-aarch64-linux.cmake" \
     -DJUCE_JUCEAIDE_PATH="$JUCEAIDE_EXE" \
-    -DGENISYS_HAS_HAILO="$HAILO" \
     -DCMAKE_BUILD_TYPE=Release \
     -G Ninja
 cmake --build "$CROSS_BUILD"

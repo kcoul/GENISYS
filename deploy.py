@@ -109,7 +109,7 @@ def main():
     print(f"  {deploy_dir}/GenisysFrontend [--backend 127.0.0.1]")
     print(f"  {deploy_dir}/GenisysDebugConsole")
     print()
-    print("To simulate a voice transcript without Hailo (trips the DebugConsole signal watchdog):")
+    print("To simulate a voice transcript without speaking into the live pipeline:")
     print("  pip install python-osc")
     print(f"  python -c \"from pythonosc import udp_client; "
           f"udp_client.SimpleUDPClient('{host}', 54282)"

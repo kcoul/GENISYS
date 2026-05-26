@@ -10,8 +10,6 @@
 #include <vector>
 
 // Hailo NPU voice pipeline for the GENISYS backend.
-// Compiled with implementation only when GENISYS_HAS_HAILO=1;
-// otherwise start() returns false and all callbacks are never fired.
 class VoiceEngine final : private juce::AudioIODeviceCallback
 {
 public:

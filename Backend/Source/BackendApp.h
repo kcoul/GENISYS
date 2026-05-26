@@ -47,8 +47,10 @@ public:
         wireVoiceEngine();
 
         if (! voice.start (modelName))
-            juce::Logger::writeToLog ("Backend: voice engine not started"
-                                      " (build without GENISYS_HAS_HAILO, or Hailo unavailable)");
+        {
+            juce::Logger::writeToLog ("Backend: voice engine failed to start; exiting");
+            quit();
+        }
     }
 
     void shutdown() override
