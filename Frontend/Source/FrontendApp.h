@@ -24,7 +24,8 @@ public:
     void closeButtonPressed() override { juce::JUCEApplication::getInstance()->systemRequestedQuit(); }
 
     struct MainComponent  : public juce::Component,
-                            private juce::OSCReceiver::Listener<juce::OSCReceiver::MessageLoopCallback>
+                            private juce::OSCReceiver::Listener<juce::OSCReceiver::MessageLoopCallback>,
+                            private juce::Timer
     {
         StudioBuilderWizard wizard;
         juce::Label         statusLabel;
@@ -33,6 +34,7 @@ public:
 
         juce::String  backendHost;
         int           backendPort = GenisysProtocol::backendPort;
+        bool          connected   = false;
 
         explicit MainComponent (const juce::String& host) : backendHost (host)
         {
@@ -40,29 +42,35 @@ public:
             addAndMakeVisible (statusLabel);
 
             statusLabel.setJustificationType (juce::Justification::centred);
-            setStatus ("Not connected to backend");
+            setStatus ("Connecting to backend at " + backendHost + "...");
 
             if (receiver.connect (GenisysProtocol::frontendPort))
                 receiver.addListener (this);
 
+            sender.connect (backendHost, backendPort);
+
             wizard.onStudioReady = [this] (const StudioConfig& cfg)
             {
-                if (sender.connect (backendHost, backendPort))
-                {
-                    sender.send (GenisysProtocol::studioLoad, cfg.toJson());
-                    setStatus ("Sent studio \"" + cfg.studioName + "\" to backend");
-                }
-                else
-                {
-                    setStatus ("ERROR: could not reach backend at "
-                               + backendHost + ":" + juce::String (backendPort));
-                }
+                sender.send (GenisysProtocol::studioLoad, cfg.toJson());
+                setStatus ("Sent studio \"" + cfg.studioName + "\" to backend");
             };
 
+            startTimer (2000);
+            timerCallback();   // ping immediately on startup
             setSize (600, 500);
         }
 
-        ~MainComponent() override { receiver.removeListener (this); }
+        ~MainComponent() override
+        {
+            stopTimer();
+            receiver.removeListener (this);
+        }
+
+        void timerCallback() override
+        {
+            if (! connected)
+                sender.send (GenisysProtocol::ping);
+        }
 
         void resized() override
         {
@@ -75,9 +83,21 @@ public:
         {
             auto addr = msg.getAddressPattern().toString();
             if (addr == GenisysProtocol::ack && msg.size() == 1 && msg[0].isString())
-                setStatus ("Backend acknowledged: " + msg[0].getString());
+            {
+                const auto acked = msg[0].getString();
+                if (! connected)
+                {
+                    connected = true;
+                    stopTimer();
+                    setStatus ("Connected to backend at " + backendHost);
+                }
+                if (acked != GenisysProtocol::ping)
+                    setStatus ("Backend acknowledged: " + acked);
+            }
             else if (addr == GenisysProtocol::error && msg.size() == 1 && msg[0].isString())
+            {
                 setStatus ("Backend error: " + msg[0].getString());
+            }
         }
 
         void setStatus (const juce::String& text)

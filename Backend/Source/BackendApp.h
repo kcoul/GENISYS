@@ -68,6 +68,12 @@ public:
     {
         const auto addr = msg.getAddressPattern().toString();
 
+        if (addr == GenisysProtocol::ping)
+        {
+            frontendSender.send (GenisysProtocol::ack, juce::String (GenisysProtocol::ping));
+            return;
+        }
+
         if (addr == GenisysProtocol::studioLoad && msg.size() == 1 && msg[0].isString())
         {
             auto cfg = StudioConfig::fromJson (msg[0].getString());

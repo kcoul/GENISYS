@@ -7,6 +7,7 @@
 namespace GenisysProtocol
 {
     // Frontend -> Backend
+    static constexpr auto ping           = "/genisys/ping";            // (no args) connectivity probe
     static constexpr auto studioLoad     = "/genisys/studio/load";     // string: profile JSON
     static constexpr auto studioSave     = "/genisys/studio/save";     // string: profile JSON
     static constexpr auto commandSend    = "/genisys/command";         // string: destination, string: intent
