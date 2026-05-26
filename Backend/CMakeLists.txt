@@ -52,31 +52,28 @@ if(GENISYS_HAS_HAILO)
 
     if(NOT EXISTS "${_silero_model}")
         message(STATUS "GenisysBackend: downloading Silero VAD model...")
+        file(MAKE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../Resources")
         file(DOWNLOAD
-            "https://github.com/snakers4/silero-vad/raw/master/files/silero_vad.onnx"
+            "https://github.com/snakers4/silero-vad/raw/master/src/silero_vad/data/silero_vad.onnx"
             "${_silero_model}"
             TIMEOUT 60
             STATUS _dl_status)
         list(GET _dl_status 0 _dl_code)
         if(NOT _dl_code EQUAL 0)
             list(GET _dl_status 1 _dl_msg)
-            message(WARNING "GenisysBackend: Silero VAD model download failed: ${_dl_msg}")
             file(REMOVE "${_silero_model}")
+            message(FATAL_ERROR "GenisysBackend: Silero VAD model download failed: ${_dl_msg}\n"
+                "Download manually to ${_silero_model} then reconfigure.")
         endif()
     endif()
 
-    if(EXISTS "${_silero_model}")
-        file(MAKE_DIRECTORY "${_gen_dir}")
-        set(SILERO_ONNX_PATH "${_silero_model}")
-        configure_file("${_incbin_dir}/silero_onnx_embed.c.in"
-                       "${_gen_dir}/silero_onnx_embed.c" @ONLY)
-        target_sources(GenisysBackend PRIVATE "${_gen_dir}/silero_onnx_embed.c")
-        target_include_directories(GenisysBackend PRIVATE "${_incbin_dir}")
-        target_compile_definitions(GenisysBackend PRIVATE GENISYS_HAS_EMBEDDED_SILERO_VAD=1)
-    else()
-        target_compile_definitions(GenisysBackend PRIVATE GENISYS_HAS_EMBEDDED_SILERO_VAD=0)
-        message(WARNING "GenisysBackend: silero_vad.onnx not found; will search next to binary at runtime")
-    endif()
+    file(MAKE_DIRECTORY "${_gen_dir}")
+    set(SILERO_ONNX_PATH "${_silero_model}")
+    configure_file("${_incbin_dir}/silero_onnx_embed.c.in"
+                   "${_gen_dir}/silero_onnx_embed.c" @ONLY)
+    target_sources(GenisysBackend PRIVATE "${_gen_dir}/silero_onnx_embed.c")
+    target_include_directories(GenisysBackend PRIVATE "${_incbin_dir}")
+    target_compile_definitions(GenisysBackend PRIVATE GENISYS_HAS_EMBEDDED_SILERO_VAD=1)
 
     if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
         target_compile_definitions(GenisysBackend PRIVATE NOMINMAX=1)
