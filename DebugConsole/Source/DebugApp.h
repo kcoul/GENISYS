@@ -154,11 +154,11 @@ public:
             if (commandId.isNotEmpty())
             {
                 ++matchedUtterances;
-                appendLog ("         → MATCHED: " + commandId, juce::Colour (0xFF44CC77));
+                appendLog (juce::String (juce::CharPointer_UTF8 ("         \xe2\x86\x92 MATCHED: ")) + commandId, juce::Colour (0xFF44CC77));
             }
             else
             {
-                appendLog ("         → no command match", juce::Colour (0xFFCC4444));
+                appendLog (juce::String (juce::CharPointer_UTF8 ("         \xe2\x86\x92 no command match")), juce::Colour (0xFFCC4444));
             }
             updateStatsLabel();
         }
@@ -213,7 +213,8 @@ private:
 
     void setSignalStatus (bool live)
     {
-        signalLabel.setText (live ? "● backend signal" : "○ waiting for backend",
+        signalLabel.setText (live ? juce::String (juce::CharPointer_UTF8 ("\xe2\x97\x8f backend signal"))
+                                  : juce::String (juce::CharPointer_UTF8 ("\xe2\x97\x8b waiting for backend")),
                              juce::dontSendNotification);
         signalLabel.setColour (juce::Label::textColourId,
                                live ? juce::Colour (0xFF44CC77) : juce::Colour (0xFFAAAAAA));
