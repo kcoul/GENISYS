@@ -4,8 +4,7 @@ juce_add_console_app(GenisysBackend
 
 target_sources(GenisysBackend
     PRIVATE
-        Source/Main.cpp
-        Source/VoiceEngine.cpp)
+        Source/Main.cpp)
 
 target_include_directories(GenisysBackend
     PRIVATE
@@ -28,6 +27,8 @@ target_link_libraries(GenisysBackend
         juce::juce_recommended_warning_flags)
 
 find_package(HailoRT REQUIRED)
+
+target_sources(GenisysBackend PRIVATE Source/VoiceEngine.cpp)
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/../cmake/FetchOnnxRuntime.cmake")
 
