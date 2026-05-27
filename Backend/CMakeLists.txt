@@ -41,6 +41,18 @@ target_link_libraries(GenisysBackend PRIVATE
     HailoRT::libhailort
     onnxruntime::onnxruntime)
 
+# Windows: copy the fetched onnxruntime*.dll next to the binary so the correct
+# version is loaded instead of any ancient system-installed onnxruntime.dll.
+if(WIN32)
+    foreach(_ort_dll ${ONNXRUNTIME_SHARED_LIBS})
+        add_custom_command(TARGET GenisysBackend POST_BUILD
+            COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+                    "${_ort_dll}"
+                    "$<TARGET_FILE_DIR:GenisysBackend>"
+            COMMENT "Copying ${_ort_dll} next to GenisysBackend binary")
+    endforeach()
+endif()
+
 # Download Silero VAD ONNX model and embed it via incbin.
 set(_silero_model  "${CMAKE_CURRENT_SOURCE_DIR}/../Resources/silero_vad.onnx")
 set(_incbin_dir    "${CMAKE_CURRENT_SOURCE_DIR}/../libs/incbin")
@@ -92,8 +104,32 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     target_compile_definitions(GenisysBackend PRIVATE NOMINMAX=1)
 endif()
 
-# Copy Whisper HEF models (Tiny / Base / Small) next to the binary.
+# Download Whisper HEF models if not already present.
 set(_hailo_models_dir "${CMAKE_CURRENT_SOURCE_DIR}/../Resources/models/hailo10h")
+set(GENISYS_HAILO_MODELS_VERSION "5.3.0" CACHE STRING "Hailo model package version for Whisper HEF downloads")
+file(MAKE_DIRECTORY "${_hailo_models_dir}")
+foreach(_hef_name Tiny Base Small)
+    set(_hef_dst "${_hailo_models_dir}/Whisper-${_hef_name}.hef")
+    if(NOT EXISTS "${_hef_dst}")
+        message(STATUS "GenisysBackend: downloading Whisper-${_hef_name}.hef ...")
+        file(DOWNLOAD
+            "https://dev-public.hailo.ai/v${GENISYS_HAILO_MODELS_VERSION}/blob/Whisper-${_hef_name}.hef"
+            "${_hef_dst}"
+            TIMEOUT 120
+            STATUS _hef_status)
+        list(GET _hef_status 0 _hef_code)
+        if(NOT _hef_code EQUAL 0)
+            list(GET _hef_status 1 _hef_msg)
+            file(REMOVE "${_hef_dst}")
+            message(WARNING "GenisysBackend: failed to download Whisper-${_hef_name}.hef: ${_hef_msg}\n"
+                "Download manually to ${_hef_dst} then reconfigure.")
+        else()
+            message(STATUS "GenisysBackend: downloaded Whisper-${_hef_name}.hef")
+        endif()
+    endif()
+endforeach()
+
+# Copy Whisper HEF models (Tiny / Base / Small) next to the binary.
 foreach(_hef_name Tiny Base Small)
     set(_hef_src "${_hailo_models_dir}/Whisper-${_hef_name}.hef")
     if(EXISTS "${_hef_src}")
