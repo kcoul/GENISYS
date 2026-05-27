@@ -63,10 +63,27 @@ if(NOT EXISTS "${_silero_model}")
 endif()
 
 file(MAKE_DIRECTORY "${_gen_dir}")
-set(SILERO_ONNX_PATH "${_silero_model}")
-configure_file("${_incbin_dir}/silero_onnx_embed.c.in"
-               "${_gen_dir}/silero_onnx_embed.c" @ONLY)
-target_sources(GenisysBackend PRIVATE "${_gen_dir}/silero_onnx_embed.c")
+set(_embed_src "${_gen_dir}/silero_onnx_embed.c")
+set(_genisys_cmake_dir "${CMAKE_CURRENT_SOURCE_DIR}/../cmake")
+
+if(WIN32)
+    # MSVC/clang-cl do not support GAS inline assembly (.incbin); generate a C array instead.
+    add_custom_command(
+        OUTPUT  "${_embed_src}"
+        COMMAND "${CMAKE_COMMAND}"
+                -DINPUT="${_silero_model}"
+                -DOUTPUT="${_embed_src}"
+                -DSYMBOL=SileroVadOnnx
+                -DPREFIX=g
+                -P "${_genisys_cmake_dir}/BinaryToCArray.cmake"
+        DEPENDS "${_silero_model}"
+        COMMENT "Embedding Silero VAD model as C array")
+else()
+    set(SILERO_ONNX_PATH "${_silero_model}")
+    configure_file("${_incbin_dir}/silero_onnx_embed.c.in" "${_embed_src}" @ONLY)
+endif()
+
+target_sources(GenisysBackend PRIVATE "${_embed_src}")
 target_include_directories(GenisysBackend PRIVATE "${_incbin_dir}")
 target_compile_definitions(GenisysBackend PRIVATE GENISYS_HAS_EMBEDDED_SILERO_VAD=1)
 
